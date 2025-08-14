@@ -157,13 +157,16 @@ public class MapperBuilderAssistant extends BaseBuilder {
     extend = applyCurrentNamespace(extend, true);
 
     if (extend != null) {
+      // 有继承的话,就拿到要继承的resultMapping,然后去除重复的
       if (!configuration.hasResultMap(extend)) {
         throw new IncompleteElementException("Could not find a parent resultmap with id '" + extend + "'");
       }
       ResultMap resultMap = configuration.getResultMap(extend);
       List<ResultMapping> extendedResultMappings = new ArrayList<>(resultMap.getResultMappings());
       extendedResultMappings.removeAll(resultMappings);
+
       // Remove parent constructor if this resultMap declares a constructor.
+      // 如果当前有构造方法的话,继承的就不需要,相当于移除他(覆盖掉继承的)
       boolean declaresConstructor = false;
       for (ResultMapping resultMapping : resultMappings) {
         if (resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR)) {
@@ -176,8 +179,11 @@ public class MapperBuilderAssistant extends BaseBuilder {
       }
       resultMappings.addAll(extendedResultMappings);
     }
+
+    // 构建者模式
     ResultMap resultMap = new ResultMap.Builder(configuration, id, type, resultMappings, autoMapping)
         .discriminator(discriminator).build();
+
     configuration.addResultMap(resultMap);
     return resultMap;
   }
@@ -186,6 +192,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
       Class<? extends TypeHandler<?>> typeHandler, Map<String, String> discriminatorMap) {
     ResultMapping resultMapping = buildResultMapping(resultType, null, column, javaType, jdbcType, null, null, null,
         null, typeHandler, new ArrayList<>(), null, null, false);
+
     Map<String, String> namespaceDiscriminatorMap = new HashMap<>();
     for (Map.Entry<String, String> e : discriminatorMap.entrySet()) {
       String resultMap = e.getValue();
@@ -315,6 +322,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
 
     List<ResultMap> resultMaps = new ArrayList<>();
     if (resultMap != null) {
+      // 支持,号,隔开
       String[] resultMapNames = resultMap.split(",");
       for (String resultMapName : resultMapNames) {
         try {
@@ -339,11 +347,14 @@ public class MapperBuilderAssistant extends BaseBuilder {
     Class<?> javaTypeClass = resolveResultJavaType(resultType, property, javaType);
     TypeHandler<?> typeHandlerInstance = resolveTypeHandler(javaTypeClass, typeHandler);
     List<ResultMapping> composites;
+
+    // 外键字段和嵌套查询都为空
     if ((nestedSelect == null || nestedSelect.isEmpty()) && (foreignColumn == null || foreignColumn.isEmpty())) {
       composites = Collections.emptyList();
     } else {
       composites = parseCompositeColumnName(column);
     }
+
     return new ResultMapping.Builder(configuration, property, column, javaTypeClass).jdbcType(jdbcType)
         .nestedQueryId(applyCurrentNamespace(nestedSelect, true))
         .nestedResultMapId(applyCurrentNamespace(nestedResultMap, true)).resultSet(resultSet)

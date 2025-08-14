@@ -33,29 +33,55 @@ import org.apache.ibatis.session.Configuration;
  */
 public final class MappedStatement {
 
+  // 该描述的资源
   private String resource;
+  // 全局配置(用于存储资源的地方)
   private Configuration configuration;
+  // sql的唯一标识, 全类名+方法名
   private String id;
+  // 期望返回的size
   private Integer fetchSize;
+  // sql执行的超时时间
   private Integer timeout;
+  // statement 的类型
   private StatementType statementType;
+  // 结果集的类型
   private ResultSetType resultSetType;
+  // sql(由于存在动态sql),所以要通过参数来进行动态生成
   private SqlSource sqlSource;
+  // 缓存
   private Cache cache;
+  // 已被废弃
   private ParameterMap parameterMap;
+  // 返回的结果集
   private List<ResultMap> resultMaps;
+  // 是否必须刷新缓存
   private boolean flushCacheRequired;
+  // 是否使用缓存
   private boolean useCache;
   private boolean resultOrdered;
+  // sql的类型, 插入,更新,查询,flush
   private SqlCommandType sqlCommandType;
+  // key的生成(用于在)
   private KeyGenerator keyGenerator;
+  // 生成key的属性有哪些(java的属性)
   private String[] keyProperties;
+  // 生成key的属性有哪些(jdbc的属性)
   private String[] keyColumns;
+
+  // 是否有嵌套的resultMap(一对一,一对多的情况)
   private boolean hasNestedResultMaps;
+  // 当前数据库的id
   private String databaseId;
   private Log statementLog;
+
+  // 语言驱动(用于创建sqlSource和ParameterHandler)
   private LanguageDriver lang;
+
+  // 主要是用于多个结果集(存储过程,允许多个结果集,例如Mysql也支持返回多个结果集(但是需要配置))
   private String[] resultSets;
+
+  // 是否脏查询
   private boolean dirtySelect;
 
   MappedStatement() {

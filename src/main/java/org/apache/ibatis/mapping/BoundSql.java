@@ -24,24 +24,31 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
 import org.apache.ibatis.session.Configuration;
 
 /**
- * An actual SQL String got from an {@link SqlSource} after having processed any dynamic content. The SQL may have SQL
- * placeholders "?" and a list (ordered) of a parameter mappings with the additional information for each parameter (at
- * least the property name of the input object to read the value from).
+ * An actual SQL String got from an {@link SqlSource} after having processed any dynamic content.
+ * The SQL may have SQL placeholders "?" and a list (ordered) of a parameter mappings with the
+ * additional information for each parameter (at least the property name of the input object to read
+ * the value from).
  * <p>
- * Can also have additional parameters that are created by the dynamic language (for loops, bind...).
+ * Can also have additional parameters that are created by the dynamic language (for loops,
+ * bind...).
  *
  * @author Clinton Begin
  */
 public class BoundSql {
 
+  // 一个完整的标准的sql
   private final String sql;
+  // 当sql存在 #{} 的时候,他代表的是?, => list代表是顺序加入,也代表他的位置
+  // 当是 ${}的时候,已经拼接到标准的sql里面去了
   private final List<ParameterMapping> parameterMappings;
+  // 当前sql的入参
   private final Object parameterObject;
+  // 运行当中附加的参数(可以类似于全局的参数)
   private final Map<String, Object> additionalParameters;
   private final MetaObject metaParameters;
 
   public BoundSql(Configuration configuration, String sql, List<ParameterMapping> parameterMappings,
-      Object parameterObject) {
+    Object parameterObject) {
     this.sql = sql;
     this.parameterMappings = parameterMappings;
     this.parameterObject = parameterObject;

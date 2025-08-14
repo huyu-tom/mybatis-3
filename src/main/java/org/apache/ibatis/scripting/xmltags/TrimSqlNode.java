@@ -25,15 +25,28 @@ import java.util.StringTokenizer;
 import org.apache.ibatis.session.Configuration;
 
 /**
+ * 过滤前后的操作 先执行内部(动态上下文进行了代理),
+ *
  * @author Clinton Begin
  */
 public class TrimSqlNode implements SqlNode {
 
+  // 该标签下面的标签
   private final SqlNode contents;
+
+  // 前缀
   private final String prefix;
+
+  // 后缀
   private final String suffix;
+
+  // 要覆盖的前缀
   private final List<String> prefixesToOverride;
+
+  // 要覆盖的后缀
   private final List<String> suffixesToOverride;
+
+  // 全局的配置
   private final Configuration configuration;
 
   public TrimSqlNode(Configuration configuration, SqlNode contents, String prefix, String prefixesToOverride,
@@ -54,6 +67,7 @@ public class TrimSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
+    // trim 后执行
     FilteredDynamicContext filteredDynamicContext = new FilteredDynamicContext(context);
     boolean result = contents.apply(filteredDynamicContext);
     filteredDynamicContext.applyAll();
@@ -72,10 +86,20 @@ public class TrimSqlNode implements SqlNode {
     return Collections.emptyList();
   }
 
+  /**
+   * 用于过滤的动态上下文
+   */
   private class FilteredDynamicContext extends DynamicContext {
+    // 用于代理的上下文
     private final DynamicContext delegate;
+
+    // 前缀是否已添加
     private boolean prefixApplied;
+
+    // 后缀是否已添加
     private boolean suffixApplied;
+
+    // 临时sql
     private StringBuilder sqlBuffer;
 
     public FilteredDynamicContext(DynamicContext delegate) {

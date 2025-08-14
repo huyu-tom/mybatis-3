@@ -26,15 +26,23 @@ import org.apache.ibatis.session.Configuration;
  */
 public class ForEachSqlNode implements SqlNode {
   public static final String ITEM_PREFIX = "__frch_";
-
+  // 表达式计算
   private final ExpressionEvaluator evaluator;
+  // 集合的数据表达式的名称
   private final String collectionExpression;
+  // 可否为null
   private final Boolean nullable;
+  // for里面的标签执行
   private final SqlNode contents;
+  // 前缀
   private final String open;
+  // 后缀
   private final String close;
+  // 每个for循环实体的切割
   private final String separator;
+  // 值的名称
   private final String item;
+  // 索引
   private final String index;
   private final Configuration configuration;
 
@@ -68,22 +76,30 @@ public class ForEachSqlNode implements SqlNode {
   @Override
   public boolean apply(DynamicContext context) {
     Map<String, Object> bindings = context.getBindings();
+
     final Iterable<?> iterable = evaluator.evaluateIterable(collectionExpression, bindings,
         Optional.ofNullable(nullable).orElseGet(configuration::isNullableOnForEach));
     if (iterable == null || !iterable.iterator().hasNext()) {
       return true;
     }
+
     boolean first = true;
     applyOpen(context);
+
     int i = 0;
     for (Object o : iterable) {
       DynamicContext oldContext = context;
+
+      // 对于每次分割符号的功能,都是在上下文的appendsql逻辑里面,但是默认的上下文只是会默认的添加,不会添加分割符号
       if (first || separator == null) {
         context = new PrefixedContext(context, "");
       } else {
         context = new PrefixedContext(context, separator);
       }
+
+      // 唯一标识,用来解决多个for循环item标识,局部变量的唯一性
       int uniqueNumber = context.getUniqueNumber();
+
       // Issue #709
       if (o instanceof Map.Entry) {
         @SuppressWarnings("unchecked")
@@ -91,17 +107,25 @@ public class ForEachSqlNode implements SqlNode {
         applyIndex(context, mapEntry.getKey(), uniqueNumber);
         applyItem(context, mapEntry.getValue(), uniqueNumber);
       } else {
+        // key索引,从0开始
         applyIndex(context, i, uniqueNumber);
         applyItem(context, o, uniqueNumber);
       }
+
+      // 遍历以后之后,就执行里面的操作,由于我们采用树形作用域,并且 #{},提前要解析
       contents.apply(new FilteredDynamicContext(configuration, context, index, item, uniqueNumber));
+
       if (first) {
         first = !((PrefixedContext) context).isPrefixApplied();
       }
+
       context = oldContext;
       i++;
     }
+
     applyClose(context);
+
+    // 移除局部变量,移除item和index
     context.getBindings().remove(item);
     context.getBindings().remove(index);
     return true;
@@ -137,6 +161,9 @@ public class ForEachSqlNode implements SqlNode {
     return ITEM_PREFIX + item + "_" + i;
   }
 
+  /**
+   * 用于For循环的动态动态上下文
+   */
   private static class FilteredDynamicContext extends DynamicContext {
     private final DynamicContext delegate;
     private final int index;
@@ -170,6 +197,7 @@ public class ForEachSqlNode implements SqlNode {
     @Override
     public void appendSql(String sql) {
       GenericTokenParser parser = new GenericTokenParser("#{", "}", content -> {
+        // For循环里面 item都是固定的,所有这里要变成唯一的 #{xxxx}
         String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
         if (itemIndex != null && newContent.equals(content)) {
           newContent = content.replaceFirst("^\\s*" + itemIndex + "(?![^.,:\\s])", itemizeItem(itemIndex, index));
@@ -187,6 +215,9 @@ public class ForEachSqlNode implements SqlNode {
 
   }
 
+  /**
+   * 前缀上下文
+   */
   private class PrefixedContext extends DynamicContext {
     private final DynamicContext delegate;
     private final String prefix;

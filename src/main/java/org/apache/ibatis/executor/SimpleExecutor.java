@@ -32,6 +32,9 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
 /**
+ * 在这里doUpdate,doQuery,doQueryCursor方法里面都会new出一个StatementHandler, new出一个StatementHandler的时候(增强拦截),底层内部也会new出其他拦截的对象,
+ * ParameterHandler和ResultSetHandler(增强拦截)
+ *
  * @author Clinton Begin
  */
 public class SimpleExecutor extends BaseExecutor {
@@ -59,11 +62,15 @@ public class SimpleExecutor extends BaseExecutor {
     Statement stmt = null;
     try {
       Configuration configuration = ms.getConfiguration();
+      // 得到一个sql语法构建器,并且同时也会new出 ParameterHandler和ResultSetHandler,并且同时加强(拦截)
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler,
           boundSql);
+      // 创建statement 和 封装参数 (执行statement方法 prepare, parameterize)
       stmt = prepareStatement(handler, ms.getStatementLog());
+      // 然后再次调用里面的查询方法(功能性方法,查询(游标和列表),更新(批量))
       return handler.query(stmt, resultHandler);
     } finally {
+      // 将创建的statement进行关闭
       closeStatement(stmt);
     }
   }

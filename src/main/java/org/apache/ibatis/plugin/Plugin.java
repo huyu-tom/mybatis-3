@@ -31,8 +31,12 @@ import org.apache.ibatis.util.MapUtil;
  */
 public class Plugin implements InvocationHandler {
 
+  // 代理的对象
   private final Object target;
+
+  // 代理的逻辑
   private final Interceptor interceptor;
+
   private final Map<Class<?>, Set<Method>> signatureMap;
 
   private Plugin(Object target, Interceptor interceptor, Map<Class<?>, Set<Method>> signatureMap) {
@@ -71,6 +75,9 @@ public class Plugin implements InvocationHandler {
       throw new PluginException(
           "No @Intercepts annotation was found in interceptor " + interceptor.getClass().getName());
     }
+
+    // 可以拦截多个方法,就是一个数组
+    // Signature 代表一个方法的签名, 方法的返回值,方法名称,方法的参数
     Signature[] sigs = interceptsAnnotation.value();
     Map<Class<?>, Set<Method>> signatureMap = new HashMap<>();
     for (Signature sig : sigs) {

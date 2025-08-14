@@ -115,19 +115,35 @@ public class MapperAnnotationBuilder {
   public void parse() {
     String resource = type.toString();
     if (!configuration.isResourceLoaded(resource)) {
+      // 如果资源没有加载,就进行加载
+
+      // 加载对应的xml资源
       loadXmlResource();
+
       configuration.addLoadedResource(resource);
+
+      // 设置命名空间
       assistant.setCurrentNamespace(type.getName());
+
+      // 解析缓存
       parseCache();
+
+      // 解析缓存引用
       parseCacheRef();
+
+      // 拿到该接口的方法
       for (Method method : type.getMethods()) {
         if (!canHaveStatement(method)) {
           continue;
         }
+
+        // 查询该方法上是否有select注解和ResultMap注解,用于解析ResultMap
         if (getAnnotationWrapper(method, false, Select.class, SelectProvider.class).isPresent()
             && method.getAnnotation(ResultMap.class) == null) {
           parseResultMap(method);
         }
+
+        // 解析非上面的情况
         try {
           parseStatement(method);
         } catch (IncompleteElementException e) {

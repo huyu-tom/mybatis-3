@@ -16,6 +16,8 @@
 package org.apache.ibatis.scripting.xmltags;
 
 /**
+ * 标准sql字符(可能还包含了 #{})
+ *
  * @author Clinton Begin
  */
 public class StaticTextSqlNode implements SqlNode {
@@ -30,5 +32,4 @@ public class StaticTextSqlNode implements SqlNode {
     context.appendSql(text);
     return true;
   }
-
 }

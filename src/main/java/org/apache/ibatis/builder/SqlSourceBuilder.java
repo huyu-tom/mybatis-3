@@ -30,6 +30,8 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.JdbcType;
 
 /**
+ * 解析 #{}表达式的SqlSourceBuilder
+ *
  * @author Clinton Begin
  */
 public class SqlSourceBuilder extends BaseBuilder {
@@ -41,18 +43,31 @@ public class SqlSourceBuilder extends BaseBuilder {
   }
 
   public SqlSource parse(String originalSql, Class<?> parameterType, Map<String, Object> additionalParameters) {
+    // 解析,封装参数
     ParameterMappingTokenHandler handler = new ParameterMappingTokenHandler(configuration, parameterType,
         additionalParameters);
     GenericTokenParser parser = new GenericTokenParser("#{", "}", handler);
     String sql;
+
+    // sql是否收缩(移除多余的空格)
     if (configuration.isShrinkWhitespacesInSql()) {
+      // 是否要移除多余的空格
       sql = parser.parse(removeExtraWhitespaces(originalSql));
     } else {
       sql = parser.parse(originalSql);
     }
+
+    // 封装成了一个静态的 StaticSqlSource
     return new StaticSqlSource(configuration, sql, handler.getParameterMappings());
   }
 
+  /**
+   * 移除多余的空格
+   *
+   * @param original
+   *
+   * @return
+   */
   public static String removeExtraWhitespaces(String original) {
     StringTokenizer tokenizer = new StringTokenizer(original);
     StringBuilder builder = new StringBuilder();
@@ -67,6 +82,9 @@ public class SqlSourceBuilder extends BaseBuilder {
     return builder.toString();
   }
 
+  /**
+   * 封装问号参数
+   */
   private static class ParameterMappingTokenHandler extends BaseBuilder implements TokenHandler {
 
     private final List<ParameterMapping> parameterMappings = new ArrayList<>();
@@ -91,9 +109,15 @@ public class SqlSourceBuilder extends BaseBuilder {
     }
 
     private ParameterMapping buildParameterMapping(String content) {
+
+      // 解析表达式
       Map<String, String> propertiesMap = parseParameterMapping(content);
+
+      // 获取java的属性的名称¬
       String property = propertiesMap.get("property");
       Class<?> propertyType;
+
+      // 并且是该属性的类型
       if (metaParameters.hasGetter(property)) { // issue #448 get type from additional params
         propertyType = metaParameters.getGetterType(property);
       } else if (typeHandlerRegistry.hasTypeHandler(parameterType)) {
@@ -110,9 +134,11 @@ public class SqlSourceBuilder extends BaseBuilder {
           propertyType = Object.class;
         }
       }
+
       ParameterMapping.Builder builder = new ParameterMapping.Builder(configuration, property, propertyType);
       Class<?> javaType = propertyType;
       String typeHandlerAlias = null;
+
       for (Map.Entry<String, String> entry : propertiesMap.entrySet()) {
         String name = entry.getKey();
         String value = entry.getValue();
@@ -124,6 +150,7 @@ public class SqlSourceBuilder extends BaseBuilder {
         } else if ("mode".equals(name)) {
           builder.mode(resolveParameterMode(value));
         } else if ("numericScale".equals(name)) {
+          // BigDecimal 可以设置保留几位小数
           builder.numericScale(Integer.valueOf(value));
         } else if ("resultMap".equals(name)) {
           builder.resultMapId(value);
@@ -134,15 +161,19 @@ public class SqlSourceBuilder extends BaseBuilder {
         } else if ("property".equals(name)) {
           // Do Nothing
         } else if ("expression".equals(name)) {
+          // 如果是表达式,现在还不支持
           throw new BuilderException("Expression based parameters are not supported yet");
         } else {
           throw new BuilderException("An invalid property '" + name + "' was found in mapping #{" + content
               + "}.  Valid properties are " + PARAMETER_PROPERTIES);
         }
       }
+
+      // 解析类型处理器
       if (typeHandlerAlias != null) {
         builder.typeHandler(resolveTypeHandler(javaType, typeHandlerAlias));
       }
+
       return builder.build();
     }
 

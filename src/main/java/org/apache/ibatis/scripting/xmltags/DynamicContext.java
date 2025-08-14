@@ -35,21 +35,38 @@ public class DynamicContext {
   public static final String DATABASE_ID_KEY = "_databaseId";
 
   static {
+    // ognl表达式
     OgnlRuntime.setPropertyAccessor(ContextMap.class, new ContextAccessor());
   }
 
+  // 变量
   private final ContextMap bindings;
+
+  // sql拼接
   private final StringJoiner sqlBuilder = new StringJoiner(" ");
+
+  // 唯一的number,可用于处理 一个或者多个for循环item属性的值都是一样的问题, 这个用于保证(因为作用域是在同一个map里面)
   private int uniqueNumber;
 
+  /**
+   * 生成sql的上下文
+   *
+   * @param configuration
+   * @param parameterObject
+   */
   public DynamicContext(Configuration configuration, Object parameterObject) {
+
     if (parameterObject != null && !(parameterObject instanceof Map)) {
+      // 不是map类型,说明是一个参数(集合,数组,普通类型)
       MetaObject metaObject = configuration.newMetaObject(parameterObject);
+      // 该入参是否存在类型处理器
       boolean existsTypeHandler = configuration.getTypeHandlerRegistry().hasTypeHandler(parameterObject.getClass());
       bindings = new ContextMap(metaObject, existsTypeHandler);
     } else {
       bindings = new ContextMap(null, false);
     }
+
+    // bindings 代表动态运行的时候,作用域和值获取的作用
     bindings.put(PARAMETER_OBJECT_KEY, parameterObject);
     bindings.put(DATABASE_ID_KEY, configuration.getDatabaseId());
   }

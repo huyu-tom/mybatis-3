@@ -38,20 +38,31 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
  */
 public abstract class BaseStatementHandler implements StatementHandler {
 
+  // 全局配置
   protected final Configuration configuration;
+  // 对象工厂
   protected final ObjectFactory objectFactory;
+  // 类型转换注册器
   protected final TypeHandlerRegistry typeHandlerRegistry;
+  // 结果集处理器
   protected final ResultSetHandler resultSetHandler;
+  // 有入参处理器
   protected final ParameterHandler parameterHandler;
 
+  // 执行器
   protected final Executor executor;
+
+  //Mapper注解接口生成的唯一
   protected final MappedStatement mappedStatement;
+
+  //内存分页
   protected final RowBounds rowBounds;
 
+  // sql的内容
   protected BoundSql boundSql;
 
-  protected BaseStatementHandler(Executor executor, MappedStatement mappedStatement, Object parameterObject,
-      RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+  protected BaseStatementHandler(Executor executor, MappedStatement mappedStatement,
+    Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
     this.configuration = mappedStatement.getConfiguration();
     this.executor = executor;
     this.mappedStatement = mappedStatement;
@@ -62,14 +73,17 @@ public abstract class BaseStatementHandler implements StatementHandler {
 
     if (boundSql == null) { // issue #435, get the key before calculating the statement
       generateKeys(parameterObject);
+      // 这里就会执行动态sql,从而得到一个完整标准的sql
       boundSql = mappedStatement.getBoundSql(parameterObject);
     }
 
     this.boundSql = boundSql;
 
-    this.parameterHandler = configuration.newParameterHandler(mappedStatement, parameterObject, boundSql);
-    this.resultSetHandler = configuration.newResultSetHandler(executor, mappedStatement, rowBounds, parameterHandler,
-        resultHandler, boundSql);
+    // 在statementHandler构造方法里面,构建 ParamterHandler和 ResultSetHandler,同时构造的时候,会进行拦截加强
+    this.parameterHandler = configuration.newParameterHandler(mappedStatement, parameterObject,
+      boundSql);
+    this.resultSetHandler = configuration.newResultSetHandler(executor, mappedStatement, rowBounds,
+      parameterHandler, resultHandler, boundSql);
   }
 
   @Override
@@ -102,7 +116,8 @@ public abstract class BaseStatementHandler implements StatementHandler {
 
   protected abstract Statement instantiateStatement(Connection connection) throws SQLException;
 
-  protected void setStatementTimeout(Statement stmt, Integer transactionTimeout) throws SQLException {
+  protected void setStatementTimeout(Statement stmt, Integer transactionTimeout)
+    throws SQLException {
     Integer queryTimeout = null;
     if (mappedStatement.getTimeout() != null) {
       queryTimeout = mappedStatement.getTimeout();

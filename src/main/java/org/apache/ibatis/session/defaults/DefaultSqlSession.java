@@ -77,8 +77,7 @@ public class DefaultSqlSession implements SqlSession {
       return list.get(0);
     }
     if (list.size() > 1) {
-      throw new TooManyResultsException(
-          "Expected one result (or null) to be returned by selectOne(), but found: " + list.size());
+      throw new TooManyResultsException("Expected one result (or null) to be returned by selectOne(), but found: " + list.size());
     } else {
       return null;
     }
@@ -97,8 +96,7 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds) {
     final List<? extends V> list = selectList(statement, parameter, rowBounds);
-    final DefaultMapResultHandler<K, V> mapResultHandler = new DefaultMapResultHandler<>(mapKey,
-        configuration.getObjectFactory(), configuration.getObjectWrapperFactory(), configuration.getReflectorFactory());
+    final DefaultMapResultHandler<K, V> mapResultHandler = new DefaultMapResultHandler<>(mapKey, configuration.getObjectFactory(), configuration.getObjectWrapperFactory(), configuration.getReflectorFactory());
     final DefaultResultContext<V> context = new DefaultResultContext<>();
     for (V o : list) {
       context.nextResultObject(o);
@@ -128,7 +126,8 @@ public class DefaultSqlSession implements SqlSession {
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
     } finally {
-      ErrorContext.instance().reset();
+      ErrorContext.instance()
+                  .reset();
     }
   }
 
@@ -155,7 +154,8 @@ public class DefaultSqlSession implements SqlSession {
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
     } finally {
-      ErrorContext.instance().reset();
+      ErrorContext.instance()
+                  .reset();
     }
   }
 
@@ -198,7 +198,8 @@ public class DefaultSqlSession implements SqlSession {
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error updating database.  Cause: " + e, e);
     } finally {
-      ErrorContext.instance().reset();
+      ErrorContext.instance()
+                  .reset();
     }
   }
 
@@ -225,7 +226,8 @@ public class DefaultSqlSession implements SqlSession {
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error committing transaction.  Cause: " + e, e);
     } finally {
-      ErrorContext.instance().reset();
+      ErrorContext.instance()
+                  .reset();
     }
   }
 
@@ -242,7 +244,8 @@ public class DefaultSqlSession implements SqlSession {
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error rolling back transaction.  Cause: " + e, e);
     } finally {
-      ErrorContext.instance().reset();
+      ErrorContext.instance()
+                  .reset();
     }
   }
 
@@ -253,7 +256,8 @@ public class DefaultSqlSession implements SqlSession {
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error flushing statements.  Cause: " + e, e);
     } finally {
-      ErrorContext.instance().reset();
+      ErrorContext.instance()
+                  .reset();
     }
   }
 
@@ -264,7 +268,8 @@ public class DefaultSqlSession implements SqlSession {
       closeCursors();
       dirty = false;
     } finally {
-      ErrorContext.instance().reset();
+      ErrorContext.instance()
+                  .reset();
     }
   }
 
@@ -294,7 +299,8 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public Connection getConnection() {
     try {
-      return executor.getTransaction().getConnection();
+      return executor.getTransaction()
+                     .getConnection();
     } catch (SQLException e) {
       throw ExceptionFactory.wrapException("Error getting a new connection.  Cause: " + e, e);
     }

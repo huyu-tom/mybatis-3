@@ -46,10 +46,19 @@ import org.xml.sax.SAXParseException;
  */
 public class XPathParser {
 
+  // xml的文档
   private final Document document;
+
+  // 是否进行校验
   private boolean validation;
+
+  // 用来解析xml的约束文件
   private EntityResolver entityResolver;
+
+  // 变量
   private Properties variables;
+
+  // Xpath实例
   private XPath xpath;
 
   public XPathParser(String xml) {
@@ -123,7 +132,9 @@ public class XPathParser {
   }
 
   public XPathParser(InputStream inputStream, boolean validation, Properties variables, EntityResolver entityResolver) {
+    // 得到一个Xpath
     commonConstructor(validation, variables, entityResolver);
+    // 得到一个Xml的文档 => 文档构建工厂 => 文档构建 => 文档
     this.document = createDocument(new InputSource(inputStream));
   }
 
@@ -240,7 +251,10 @@ public class XPathParser {
       factory.setExpandEntityReferences(true);
 
       DocumentBuilder builder = factory.newDocumentBuilder();
+      // 如果xml文件存在一些描述xml格式的话,这个参数必须填写,如果没有,可以不填写
       builder.setEntityResolver(entityResolver);
+
+      // 解析的错误处理
       builder.setErrorHandler(new ErrorHandler() {
         @Override
         public void error(SAXParseException exception) throws SAXException {
@@ -257,6 +271,8 @@ public class XPathParser {
           // NOP
         }
       });
+
+      // 解析得到一个文档
       return builder.parse(inputSource);
     } catch (Exception e) {
       throw new BuilderException("Error creating document instance.  Cause: " + e, e);
@@ -267,7 +283,11 @@ public class XPathParser {
     this.validation = validation;
     this.entityResolver = entityResolver;
     this.variables = variables;
+
+    // Java Xml XPath 得到一个XPath工厂
     XPathFactory factory = XPathFactory.newInstance();
+
+    // 然后得到一个Java的XPath解析器
     this.xpath = factory.newXPath();
   }
 

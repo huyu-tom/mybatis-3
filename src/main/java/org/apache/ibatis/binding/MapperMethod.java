@@ -50,28 +50,37 @@ public class MapperMethod {
   private final MethodSignature method;
 
   public MapperMethod(Class<?> mapperInterface, Method method, Configuration config) {
+    // sql命令,sql的名称(包含sql的数据),sql的类型(插入还是更新)
     this.command = new SqlCommand(config, mapperInterface, method);
+    // 方法签名,方法入参,方法返回值等等
     this.method = new MethodSignature(config, mapperInterface, method);
   }
 
   public Object execute(SqlSession sqlSession, Object[] args) {
     Object result;
     switch (command.getType()) {
+      // 插入语句
       case INSERT: {
         Object param = method.convertArgsToSqlCommandParam(args);
         result = rowCountResult(sqlSession.insert(command.getName(), param));
         break;
       }
+
+      // 更新语句
       case UPDATE: {
         Object param = method.convertArgsToSqlCommandParam(args);
         result = rowCountResult(sqlSession.update(command.getName(), param));
         break;
       }
+
+      // 删除语句
       case DELETE: {
         Object param = method.convertArgsToSqlCommandParam(args);
         result = rowCountResult(sqlSession.delete(command.getName(), param));
         break;
       }
+
+      // 查询语句
       case SELECT:
         if (method.returnsVoid() && method.hasResultHandler()) {
           executeWithResultHandler(sqlSession, args);
@@ -90,9 +99,13 @@ public class MapperMethod {
           }
         }
         break;
+
+      // flush语句
       case FLUSH:
         result = sqlSession.flushStatements();
         break;
+
+      // 其他语句,直接抛出异常
       default:
         throw new BindingException("Unknown execution method for: " + command.getName());
     }
@@ -247,15 +260,20 @@ public class MapperMethod {
       return type;
     }
 
+    // 接口存在继承的问题,可以复用(存在往上递归的问题)
     private MappedStatement resolveMappedStatement(Class<?> mapperInterface, String methodName, Class<?> declaringClass,
         Configuration configuration) {
+      // 接口名称+方法名称
       String statementId = mapperInterface.getName() + "." + methodName;
+
       if (configuration.hasStatement(statementId)) {
         return configuration.getMappedStatement(statementId);
       }
+
       if (mapperInterface.equals(declaringClass)) {
         return null;
       }
+
       for (Class<?> superInterface : mapperInterface.getInterfaces()) {
         if (declaringClass.isAssignableFrom(superInterface)) {
           MappedStatement ms = resolveMappedStatement(superInterface, methodName, declaringClass, configuration);
@@ -270,18 +288,31 @@ public class MapperMethod {
 
   public static class MethodSignature {
 
+    // 返回list
     private final boolean returnsMany;
+    // 返回map
     private final boolean returnsMap;
+    // 返回void
     private final boolean returnsVoid;
+    // 返回游标
     private final boolean returnsCursor;
+    // 返回Optional,用于解决空指针的问题
     private final boolean returnsOptional;
+    // 返回的类型是啥
     private final Class<?> returnType;
+    // 如果是map的话,key的名称
     private final String mapKey;
+
+    // 指定类型在参数集合中的索引位置
     private final Integer resultHandlerIndex;
     private final Integer rowBoundsIndex;
+
+    // 参数集合名字解析
     private final ParamNameResolver paramNameResolver;
 
     public MethodSignature(Configuration configuration, Class<?> mapperInterface, Method method) {
+
+      // 指定返回的类型
       Type resolvedReturnType = TypeParameterResolver.resolveReturnType(method, mapperInterface);
       if (resolvedReturnType instanceof Class<?>) {
         this.returnType = (Class<?>) resolvedReturnType;
@@ -294,10 +325,16 @@ public class MapperMethod {
       this.returnsMany = configuration.getObjectFactory().isCollection(this.returnType) || this.returnType.isArray();
       this.returnsCursor = Cursor.class.equals(this.returnType);
       this.returnsOptional = Optional.class.equals(this.returnType);
+
+      // 如果返回的是map的话,并且该方法上面还有MapKey注解的话,获取map的key的值.详细可见MapKey注解
       this.mapKey = getMapKey(method);
       this.returnsMap = this.mapKey != null;
+
+      // 入参如果是特殊的类型,直接定位第几个索引
       this.rowBoundsIndex = getUniqueParamIndex(method, RowBounds.class);
       this.resultHandlerIndex = getUniqueParamIndex(method, ResultHandler.class);
+
+      // 参数名称解析
       this.paramNameResolver = new ParamNameResolver(configuration, method);
     }
 

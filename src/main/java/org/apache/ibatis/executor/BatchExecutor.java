@@ -86,11 +86,21 @@ public class BatchExecutor extends BaseExecutor {
     try {
       flushStatements();
       Configuration configuration = ms.getConfiguration();
+
+      // 每次都是最新的
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameterObject, rowBounds,
           resultHandler, boundSql);
+
+      // 获取连接
       Connection connection = getConnection(ms.getStatementLog());
+
+      // 构建jdbc的statement并且设置fetchSize和查询超时时间
       stmt = handler.prepare(connection, transaction.getTimeout());
+
+      // 封装参数(如果是简单的statement,那么里面是空方法,如果是?的话,就是占位符的statment)
       handler.parameterize(stmt);
+
+      // 再次调用功能性方法,对里面的结果集进行构建
       return handler.query(stmt, resultHandler);
     } finally {
       closeStatement(stmt);
@@ -111,6 +121,16 @@ public class BatchExecutor extends BaseExecutor {
     return cursor;
   }
 
+  /**
+   * 执行很多批量更新,采用的执行器是batchExecutor,当最后要执行的时候,就要执行sqlSession的 flushStatements()方法
+   * 返回的结果集是BatchResult,并且采用的是前后sql不相同,就创建一个新的Statement,在doUpdate的逻辑有体现 下面该方法,只是将Statement的集合进行遍历执行,并且封装结果
+   *
+   * @param isRollback
+   *
+   * @return
+   *
+   * @throws SQLException
+   */
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) throws SQLException {
     try {

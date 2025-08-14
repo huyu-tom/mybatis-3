@@ -52,6 +52,7 @@ public class BeanWrapper extends BaseWrapper {
   @Override
   public void set(PropertyTokenizer prop, Object value) {
     if (prop.getIndex() != null) {
+      // 如果index存在,说明是集合
       Object collection = resolveCollection(prop, object);
       setCollectionValue(prop, collection, value);
     } else {

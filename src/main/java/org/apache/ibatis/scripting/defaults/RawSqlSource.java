@@ -26,11 +26,15 @@ import org.apache.ibatis.scripting.xmltags.SqlNode;
 import org.apache.ibatis.session.Configuration;
 
 /**
- * Static SqlSource. It is faster than {@link DynamicSqlSource} because mappings are calculated during startup.
- *
- * @since 3.2.0
+ * Static SqlSource. It is faster than {@link DynamicSqlSource} because mappings are calculated
+ * during startup.
  *
  * @author Eduardo Macarron
+ * <p>
+ * 没有动态标签,${} => 可能只拥有#{}
+ * <p>
+ * 构造方法传入的 SqlNode rootSqlNode,里面节点必须没有动态标签
+ * @since 3.2.0
  */
 public class RawSqlSource implements SqlSource {
 
@@ -40,13 +44,27 @@ public class RawSqlSource implements SqlSource {
     this(configuration, getSql(configuration, rootSqlNode), parameterType);
   }
 
+  /**
+   * @param configuration
+   * @param sql
+   * @param parameterType
+   */
   public RawSqlSource(Configuration configuration, String sql, Class<?> parameterType) {
     SqlSourceBuilder sqlSourceParser = new SqlSourceBuilder(configuration);
     Class<?> clazz = parameterType == null ? Object.class : parameterType;
+    //解析 #{}, 形成
     sqlSource = sqlSourceParser.parse(sql, clazz, new HashMap<>());
   }
 
+  /**
+   * 动态sql执行完毕,里面会讲 动态标签和${},会进行替换和执行
+   *
+   * @param configuration
+   * @param rootSqlNode
+   * @return
+   */
   private static String getSql(Configuration configuration, SqlNode rootSqlNode) {
+    //用来解析 ${},动态标签
     DynamicContext context = new DynamicContext(configuration, null);
     rootSqlNode.apply(context);
     return context.getSql();
@@ -56,5 +74,4 @@ public class RawSqlSource implements SqlSource {
   public BoundSql getBoundSql(Object parameterObject) {
     return sqlSource.getBoundSql(parameterObject);
   }
-
 }

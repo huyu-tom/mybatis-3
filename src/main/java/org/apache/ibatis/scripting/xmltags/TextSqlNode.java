@@ -23,7 +23,7 @@ import org.apache.ibatis.scripting.ScriptingException;
 import org.apache.ibatis.type.SimpleTypeRegistry;
 
 /**
- * @author Clinton Begin
+ * @author Clinton Begin 主要是解析 ${}的sql
  */
 public class TextSqlNode implements SqlNode {
   private final String text;
@@ -74,8 +74,14 @@ public class TextSqlNode implements SqlNode {
       } else if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
         context.getBindings().put("value", parameter);
       }
+
+      // 通过ognl来获取值
       Object value = OgnlCache.getValue(content, context.getBindings());
+
+      // 直接调用toString方法
       String srtValue = value == null ? "" : String.valueOf(value); // issue #274 return "" instead of "null"
+
+      // 不允许包含特殊字符
       checkInjection(srtValue);
       return srtValue;
     }

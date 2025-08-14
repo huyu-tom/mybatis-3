@@ -28,6 +28,14 @@ import org.apache.ibatis.builder.BuilderException;
  */
 public class ExpressionEvaluator {
 
+  /**
+   * 用于计算true和false 例如在 if标签,when标签,等等标签当中
+   *
+   * @param expression
+   * @param parameterObject
+   *
+   * @return
+   */
   public boolean evaluateBoolean(String expression, Object parameterObject) {
     Object value = OgnlCache.getValue(expression, parameterObject);
     if (value instanceof Boolean) {
@@ -40,6 +48,8 @@ public class ExpressionEvaluator {
   }
 
   /**
+   * 用于foreach标签的循环
+   *
    * @deprecated Since 3.5.9, use the {@link #evaluateIterable(String, Object, boolean)}.
    */
   @Deprecated
@@ -58,9 +68,13 @@ public class ExpressionEvaluator {
       }
       throw new BuilderException("The expression '" + expression + "' evaluated to a null value.");
     }
+
+    // 如果已经是迭代器的话,就直接返回
     if (value instanceof Iterable) {
       return (Iterable<?>) value;
     }
+
+    // 如果是一个数组的话,就将其变成集合
     if (value.getClass().isArray()) {
       // the array may be primitive, so Arrays.asList() may throw
       // a ClassCastException (issue 209). Do the work manually
@@ -73,6 +87,8 @@ public class ExpressionEvaluator {
       }
       return answer;
     }
+
+    // 如果是一个Map的话,手动调用Map
     if (value instanceof Map) {
       return ((Map) value).entrySet();
     }

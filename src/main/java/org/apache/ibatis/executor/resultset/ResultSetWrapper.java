@@ -43,21 +43,39 @@ public class ResultSetWrapper {
 
   private final ResultSet resultSet;
   private final TypeHandlerRegistry typeHandlerRegistry;
-  private final List<String> columnNames = new ArrayList<>();
+
+  private final List<String> columnNames;
   private final List<String> classNames = new ArrayList<>();
   private final List<JdbcType> jdbcTypes = new ArrayList<>();
+
+  // Key为字段名称
   private final Map<String, Map<Class<?>, TypeHandler<?>>> typeHandlerMap = new HashMap<>();
+
+  // key是 resultMap的ID + "," + resultMap的前缀字段
   private final Map<String, List<String>> mappedColumnNamesMap = new HashMap<>();
+
+  // key是 resultMap的ID + "," + resultMap的前缀字段
   private final Map<String, List<String>> unMappedColumnNamesMap = new HashMap<>();
 
   public ResultSetWrapper(ResultSet rs, Configuration configuration) throws SQLException {
     this.typeHandlerRegistry = configuration.getTypeHandlerRegistry();
     this.resultSet = rs;
+
+    // 用于自动映射
     final ResultSetMetaData metaData = rs.getMetaData();
     final int columnCount = metaData.getColumnCount();
+
+    // todo 可以优化的地方 ,而是在这里进行初始化
+    columnNames = new ArrayList<>(columnCount);
+
     for (int i = 1; i <= columnCount; i++) {
+      // label 表示别名 as xxx
       columnNames.add(configuration.isUseColumnLabel() ? metaData.getColumnLabel(i) : metaData.getColumnName(i));
+
+      // JDBC类型
       jdbcTypes.add(JdbcType.forCode(metaData.getColumnType(i)));
+
+      // 调用 resultset.getObject()的时候,指定返回object的全类名限定符
       classNames.add(metaData.getColumnClassName(i));
     }
   }
@@ -78,6 +96,13 @@ public class ResultSetWrapper {
     return jdbcTypes;
   }
 
+  /**
+   * 通过字段来获取jdbc的类型
+   *
+   * @param columnName
+   *
+   * @return
+   */
   public JdbcType getJdbcType(String columnName) {
     for (int i = 0; i < columnNames.size(); i++) {
       if (columnNames.get(i).equalsIgnoreCase(columnName)) {
@@ -107,25 +132,36 @@ public class ResultSetWrapper {
     } else {
       handler = columnHandlers.get(propertyType);
     }
+
     if (handler == null) {
       JdbcType jdbcType = getJdbcType(columnName);
+
       handler = typeHandlerRegistry.getTypeHandler(propertyType, jdbcType);
       // Replicate logic of UnknownTypeHandler#resolveTypeHandler
       // See issue #59 comment 10
       if (handler == null || handler instanceof UnknownTypeHandler) {
         final int index = columnNames.indexOf(columnName);
+
+        // java的类型
         final Class<?> javaType = resolveClass(classNames.get(index));
+
         if (javaType != null && jdbcType != null) {
+          // Java的类型和JDBC的类型都不为空
           handler = typeHandlerRegistry.getTypeHandler(javaType, jdbcType);
         } else if (javaType != null) {
+          // java的类型不为空,jdbc的类型为空
           handler = typeHandlerRegistry.getTypeHandler(javaType);
         } else if (jdbcType != null) {
+          // jdbc的类型不为空,java的类型为空
           handler = typeHandlerRegistry.getTypeHandler(jdbcType);
         }
       }
+
       if (handler == null || handler instanceof UnknownTypeHandler) {
+        // 如果类型为空,就用默认的类型处理器
         handler = new ObjectTypeHandler();
       }
+
       columnHandlers.put(propertyType, handler);
     }
     return handler;
@@ -143,23 +179,48 @@ public class ResultSetWrapper {
     return null;
   }
 
+  /**
+   * 加载映射和未映射的字段名称
+   *
+   * @param resultMap
+   * @param columnPrefix
+   *
+   * @throws SQLException
+   */
   private void loadMappedAndUnmappedColumnNames(ResultMap resultMap, String columnPrefix) throws SQLException {
     List<String> mappedColumnNames = new ArrayList<>();
     List<String> unmappedColumnNames = new ArrayList<>();
+
     final String upperColumnPrefix = columnPrefix == null ? null : columnPrefix.toUpperCase(Locale.ENGLISH);
+
+    // 这里是已映射的字段 (如果存在前缀,就给字段加上前缀)
     final Set<String> mappedColumns = prependPrefixes(resultMap.getMappedColumns(), upperColumnPrefix);
+
     for (String columnName : columnNames) {
       final String upperColumnName = columnName.toUpperCase(Locale.ENGLISH);
       if (mappedColumns.contains(upperColumnName)) {
+        // 已映射
         mappedColumnNames.add(upperColumnName);
       } else {
+        // 未映射
         unmappedColumnNames.add(columnName);
       }
     }
+
     mappedColumnNamesMap.put(getMapKey(resultMap, columnPrefix), mappedColumnNames);
     unMappedColumnNamesMap.put(getMapKey(resultMap, columnPrefix), unmappedColumnNames);
   }
 
+  /**
+   * 获取映射的字段名称
+   *
+   * @param resultMap
+   * @param columnPrefix
+   *
+   * @return
+   *
+   * @throws SQLException
+   */
   public List<String> getMappedColumnNames(ResultMap resultMap, String columnPrefix) throws SQLException {
     List<String> mappedColumnNames = mappedColumnNamesMap.get(getMapKey(resultMap, columnPrefix));
     if (mappedColumnNames == null) {
@@ -169,6 +230,16 @@ public class ResultSetWrapper {
     return mappedColumnNames;
   }
 
+  /**
+   * 获取未映射的字段名称
+   *
+   * @param resultMap
+   * @param columnPrefix
+   *
+   * @return
+   *
+   * @throws SQLException
+   */
   public List<String> getUnmappedColumnNames(ResultMap resultMap, String columnPrefix) throws SQLException {
     List<String> unMappedColumnNames = unMappedColumnNamesMap.get(getMapKey(resultMap, columnPrefix));
     if (unMappedColumnNames == null) {

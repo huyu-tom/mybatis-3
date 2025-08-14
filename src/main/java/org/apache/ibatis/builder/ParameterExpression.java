@@ -22,12 +22,19 @@ import java.util.HashMap;
  *
  * <pre>
  * inline-parameter = (propertyName | expression) oldJdbcType attributes
+ *
  * propertyName = /expression language's property navigation path/
  * expression = '(' /expression language's expression/ ')'
+ *
+ *
  * oldJdbcType = ':' /any valid jdbc type/
- * attributes = (',' attribute)*
+ *
+ *
+ * attributes = (',' attribute)*  说明 ',' attribute 是出现0次或者多次
  * attribute = name '=' value
  * </pre>
+ * <p>
+ * 一个较为完整的 #{ a.b : bigint ,a=b,b=c,d=f }
  *
  * @author Frank D. Martinez [mnesarco]
  */
@@ -42,8 +49,10 @@ public class ParameterExpression extends HashMap<String, String> {
   private void parse(String expression) {
     int p = skipWS(expression, 0);
     if (expression.charAt(p) == '(') {
+      // 表达式 带括号的表达式 (
       expression(expression, p + 1);
     } else {
+      // 普通表达式
       property(expression, p);
     }
   }
@@ -65,8 +74,12 @@ public class ParameterExpression extends HashMap<String, String> {
 
   private void property(String expression, int left) {
     if (left < expression.length()) {
+      // 如果是, 后面就是key-value的属性
+      // 如果是: 表示老的jdbc的类型
       int right = skipUntil(expression, left, ",:");
       put("property", trimmedStr(expression, left, right));
+
+      // 处理jdbc的类型
       jdbcTypeOpt(expression, right);
     }
   }
@@ -94,8 +107,10 @@ public class ParameterExpression extends HashMap<String, String> {
     p = skipWS(expression, p);
     if (p < expression.length()) {
       if (expression.charAt(p) == ':') {
+        // 冒号就是jdbc
         jdbcType(expression, p + 1);
       } else if (expression.charAt(p) == ',') {
+        // , 就是普通的key=value属性
         option(expression, p + 1);
       } else {
         throw new BuilderException("Parsing error in {" + expression + "} in position " + p);
@@ -122,17 +137,32 @@ public class ParameterExpression extends HashMap<String, String> {
       right = skipUntil(expression, left, ",");
       String value = trimmedStr(expression, left, right);
       put(name, value);
+
+      // 递归下去
       option(expression, right + 1);
     }
   }
 
+  /**
+   * 获取修建后的str
+   *
+   * @param str
+   * @param start
+   * @param end
+   *
+   * @return
+   */
   private String trimmedStr(String str, int start, int end) {
+    // 头部的一些图标隐藏掉
     while (str.charAt(start) <= 0x20) {
       start++;
     }
+    // 尾部的一些图标隐藏掉
     while (str.charAt(end - 1) <= 0x20) {
       end--;
     }
+
+    // 然后切割
     return start >= end ? "" : str.substring(start, end);
   }
 

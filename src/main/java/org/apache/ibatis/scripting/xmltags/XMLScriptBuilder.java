@@ -34,9 +34,18 @@ import org.w3c.dom.NodeList;
  */
 public class XMLScriptBuilder extends BaseBuilder {
 
+  /**
+   * 抽象出来了一个xml的节点 (获取节点的属性(指定类型))
+   */
   private final XNode context;
+
+  /**
+   * 是否是动态sql
+   */
   private boolean isDynamic;
+
   private final Class<?> parameterType;
+
   private final Map<String, NodeHandler> nodeHandlerMap = new HashMap<>();
 
   public XMLScriptBuilder(Configuration configuration, XNode context) {
@@ -56,9 +65,11 @@ public class XMLScriptBuilder extends BaseBuilder {
     nodeHandlerMap.put("set", new SetHandler());
     nodeHandlerMap.put("foreach", new ForEachHandler());
     nodeHandlerMap.put("if", new IfHandler());
+
     nodeHandlerMap.put("choose", new ChooseHandler());
     nodeHandlerMap.put("when", new IfHandler());
     nodeHandlerMap.put("otherwise", new OtherwiseHandler());
+
     nodeHandlerMap.put("bind", new BindHandler());
   }
 
@@ -66,41 +77,75 @@ public class XMLScriptBuilder extends BaseBuilder {
     MixedSqlNode rootSqlNode = parseDynamicTags(context);
     SqlSource sqlSource;
     if (isDynamic) {
+      // 动态, 拥有动态标签,${}
       sqlSource = new DynamicSqlSource(configuration, rootSqlNode);
     } else {
+      // 可能拥有普通的${},并且内部会解析,当获取SqlBound的时候,他是静态的(内部代理了StaticSqlSource)
       sqlSource = new RawSqlSource(configuration, rootSqlNode, parameterType);
     }
     return sqlSource;
   }
 
+  /**
+   * 解析动态标签,每到下一层就相当于递归
+   *
+   * @param node
+   *
+   * @return
+   */
   protected MixedSqlNode parseDynamicTags(XNode node) {
     List<SqlNode> contents = new ArrayList<>();
+
+    // 获取子node,有多种类型, 我们只要 文本节点 和 标签节点
     NodeList children = node.getNode().getChildNodes();
+
     for (int i = 0; i < children.getLength(); i++) {
+
+      // 获取子节点中的一个节点
       XNode child = node.newXNode(children.item(i));
+
+      // 文本节点和
       if (child.getNode().getNodeType() == Node.CDATA_SECTION_NODE || child.getNode().getNodeType() == Node.TEXT_NODE) {
+        // ${} ,是一种动态
         String data = child.getStringBody("");
         TextSqlNode textSqlNode = new TextSqlNode(data);
         if (textSqlNode.isDynamic()) {
+          // 这里,只判断了 ${}
           contents.add(textSqlNode);
           isDynamic = true;
         } else {
+          // 而其他是一种静态, todo 如果连续当前和上一个都是 静态的sql,你们就变成一个节点,减少后期遍历和后期字符串拼接的拷贝
           contents.add(new StaticTextSqlNode(data));
         }
-      } else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) { // issue #628
+      } else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) {
+        // issue #628
+        // <xxx><xxx/> 类似于这种标签
         String nodeName = child.getNode().getNodeName();
         NodeHandler handler = nodeHandlerMap.get(nodeName);
         if (handler == null) {
           throw new BuilderException("Unknown element <" + nodeName + "> in SQL statement.");
         }
+
+        // 对于bind标签的处理,主要是拿到name和value属性,并且value属性如果是ognl表达式的话,需要计算得到数据,然后运行动态sql的时候,只需要放在上下文当中
         handler.handleNode(child, contents);
+
+        // 动态的
         isDynamic = true;
       }
     }
     return new MixedSqlNode(contents);
   }
 
+  /**
+   * 动态标签的处理
+   */
   private interface NodeHandler {
+    /**
+     * @param nodeToHandle
+     *          当前动态标签的node
+     * @param targetContents
+     *          上下文(运行的上下文)
+     */
     void handleNode(XNode nodeToHandle, List<SqlNode> targetContents);
   }
 
@@ -215,17 +260,34 @@ public class XMLScriptBuilder extends BaseBuilder {
 
     @Override
     public void handleNode(XNode nodeToHandle, List<SqlNode> targetContents) {
+      // 类似于Java语言的switch语句
+
+      // 类似于case
       List<SqlNode> whenSqlNodes = new ArrayList<>();
+      // 类似于default
       List<SqlNode> otherwiseSqlNodes = new ArrayList<>();
+
+      // case 和 default 都是一个标签
+      // 相当于又得获取子标签
       handleWhenOtherwiseNodes(nodeToHandle, whenSqlNodes, otherwiseSqlNodes);
+
+      //
       SqlNode defaultSqlNode = getDefaultSqlNode(otherwiseSqlNodes);
+
+      // case集合 和 默认值处理
       ChooseSqlNode chooseSqlNode = new ChooseSqlNode(whenSqlNodes, defaultSqlNode);
       targetContents.add(chooseSqlNode);
     }
 
+    /**
+     * @param chooseSqlNode
+     * @param ifSqlNodes
+     * @param defaultSqlNodes
+     */
     private void handleWhenOtherwiseNodes(XNode chooseSqlNode, List<SqlNode> ifSqlNodes,
         List<SqlNode> defaultSqlNodes) {
       List<XNode> children = chooseSqlNode.getChildren();
+
       for (XNode child : children) {
         String nodeName = child.getNode().getNodeName();
         NodeHandler handler = nodeHandlerMap.get(nodeName);
@@ -237,6 +299,11 @@ public class XMLScriptBuilder extends BaseBuilder {
       }
     }
 
+    /**
+     * @param defaultSqlNodes
+     *
+     * @return
+     */
     private SqlNode getDefaultSqlNode(List<SqlNode> defaultSqlNodes) {
       SqlNode defaultSqlNode = null;
       if (defaultSqlNodes.size() == 1) {

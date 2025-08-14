@@ -54,13 +54,21 @@ import org.apache.ibatis.session.Configuration;
  */
 public final class TypeHandlerRegistry {
 
+  // JDBC的类型 => 类型处理器 用于获取结果集封装
   private final Map<JdbcType, TypeHandler<?>> jdbcTypeHandlerMap = new EnumMap<>(JdbcType.class);
+
+  // Java的类型 => 可以封装多个不同的jdbc的类型 用于set参数
   private final Map<Type, Map<JdbcType, TypeHandler<?>>> typeHandlerMap = new ConcurrentHashMap<>();
-  private final TypeHandler<Object> unknownTypeHandler;
+
+  // 通过class映射一个类型处理器
   private final Map<Class<?>, TypeHandler<?>> allTypeHandlersMap = new HashMap<>();
+
+  // 无类型处理器
+  private final TypeHandler<Object> unknownTypeHandler;
 
   private static final Map<JdbcType, TypeHandler<?>> NULL_TYPE_HANDLER_MAP = Collections.emptyMap();
 
+  // 枚举类型处理器
   private Class<? extends TypeHandler> defaultEnumTypeHandler = EnumTypeHandler.class;
 
   /**
@@ -84,12 +92,12 @@ public final class TypeHandlerRegistry {
     register(Boolean.class, new BooleanTypeHandler());
     register(boolean.class, new BooleanTypeHandler());
     register(JdbcType.BOOLEAN, new BooleanTypeHandler());
-    register(JdbcType.BIT, new BooleanTypeHandler());
 
+    register(JdbcType.BIT, new BooleanTypeHandler());
     register(Byte.class, new ByteTypeHandler());
     register(byte.class, new ByteTypeHandler());
-    register(JdbcType.TINYINT, new ByteTypeHandler());
 
+    register(JdbcType.TINYINT, new ByteTypeHandler());
     register(Short.class, new ShortTypeHandler());
     register(short.class, new ShortTypeHandler());
     register(JdbcType.SMALLINT, new ShortTypeHandler());
@@ -367,8 +375,11 @@ public final class TypeHandlerRegistry {
   }
 
   private <T> void register(Type javaType, TypeHandler<? extends T> typeHandler) {
+
+    // Java类型转换为 多个jdbc的类型 ===> 用于封装参数
     MappedJdbcTypes mappedJdbcTypes = typeHandler.getClass().getAnnotation(MappedJdbcTypes.class);
     if (mappedJdbcTypes != null) {
+      // 如果类型处理器上有 MappedJdbcTypes注解
       for (JdbcType handledJdbcType : mappedJdbcTypes.value()) {
         register(javaType, handledJdbcType, typeHandler);
       }
@@ -392,6 +403,13 @@ public final class TypeHandlerRegistry {
     register((Type) type, jdbcType, handler);
   }
 
+  /**
+   * JavaType -> JdbcType => TypeHandler<?>
+   *
+   * @param javaType
+   * @param jdbcType
+   * @param handler
+   */
   private void register(Type javaType, JdbcType jdbcType, TypeHandler<?> handler) {
     if (javaType != null) {
       Map<JdbcType, TypeHandler<?>> map = typeHandlerMap.get(javaType);

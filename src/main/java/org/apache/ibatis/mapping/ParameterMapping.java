@@ -29,9 +29,15 @@ public class ParameterMapping {
 
   private Configuration configuration;
 
+  // 表达式属性
   private String property;
+
   private ParameterMode mode;
+
+  // Java的类型
   private Class<?> javaType = Object.class;
+
+  // JDBC的类型
   private JdbcType jdbcType;
   private Integer numericScale;
   private TypeHandler<?> typeHandler;

@@ -37,17 +37,30 @@ import org.apache.ibatis.session.Configuration;
 public class ResultMap {
   private Configuration configuration;
 
+  // resultMap的id名称
   private String id;
+  // resultMap的类型
   private Class<?> type;
+  // 整个的resultMapping(在resultMap下的所有标签映射)
   private List<ResultMapping> resultMappings;
+  // ID标签的 映射
   private List<ResultMapping> idResultMappings;
+  // 在resultMap当中,是构造器的 ResultMapping
   private List<ResultMapping> constructorResultMappings;
+  // java属性的名称的映射
   private List<ResultMapping> propertyResultMappings;
+  // jdbc的字段集合
   private Set<String> mappedColumns;
+  // java属性的名称
   private Set<String> mappedProperties;
+  // 鉴别器(判断什么情况是用那个ResultMap)
   private Discriminator discriminator;
+  // 是否有嵌套的resultMap
   private boolean hasNestedResultMaps;
+  // 是否有嵌套查询
   private boolean hasNestedQueries;
+
+  // 是否自动映射
   private Boolean autoMapping;
 
   private ResultMap() {
@@ -90,14 +103,19 @@ public class ResultMap {
       resultMap.constructorResultMappings = new ArrayList<>();
       resultMap.propertyResultMappings = new ArrayList<>();
       final List<String> constructorArgNames = new ArrayList<>();
+
       for (ResultMapping resultMapping : resultMap.resultMappings) {
+        // 是否有嵌套,主要是嵌套查询(select和嵌套resultMap)
         resultMap.hasNestedQueries = resultMap.hasNestedQueries || resultMapping.getNestedQueryId() != null;
+
         resultMap.hasNestedResultMaps = resultMap.hasNestedResultMaps
             || resultMapping.getNestedResultMapId() != null && resultMapping.getResultSet() == null;
+
         final String column = resultMapping.getColumn();
         if (column != null) {
           resultMap.mappedColumns.add(column.toUpperCase(Locale.ENGLISH));
         } else if (resultMapping.isCompositeResult()) {
+          // 如果是比较复杂的结果
           for (ResultMapping compositeResultMapping : resultMapping.getComposites()) {
             final String compositeColumn = compositeResultMapping.getColumn();
             if (compositeColumn != null) {
@@ -105,26 +123,37 @@ public class ResultMap {
             }
           }
         }
+
+        // java的属性名称
         final String property = resultMapping.getProperty();
         if (property != null) {
           resultMap.mappedProperties.add(property);
         }
+
         if (resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR)) {
           resultMap.constructorResultMappings.add(resultMapping);
           if (resultMapping.getProperty() != null) {
+            // 构造参数名称
             constructorArgNames.add(resultMapping.getProperty());
           }
         } else {
+          // 普通
           resultMap.propertyResultMappings.add(resultMapping);
         }
+
         if (resultMapping.getFlags().contains(ResultFlag.ID)) {
           resultMap.idResultMappings.add(resultMapping);
         }
       }
+
+      // 如果没有ID标签,全局的resultMapping,组合成一个
       if (resultMap.idResultMappings.isEmpty()) {
         resultMap.idResultMappings.addAll(resultMap.resultMappings);
       }
+
+      // 一个resultMap只有一个构造函数
       if (!constructorArgNames.isEmpty()) {
+        // 构造参数排序
         final List<String> actualArgNames = argNamesOfMatchingConstructor(constructorArgNames);
         if (actualArgNames == null) {
           throw new BuilderException("Error in result map '" + resultMap.id + "'. Failed to find a constructor in '"
@@ -137,7 +166,8 @@ public class ResultMap {
           return paramIdx1 - paramIdx2;
         });
       }
-      // lock down collections
+
+      // lock down collections,变成不可变
       resultMap.resultMappings = Collections.unmodifiableList(resultMap.resultMappings);
       resultMap.idResultMappings = Collections.unmodifiableList(resultMap.idResultMappings);
       resultMap.constructorResultMappings = Collections.unmodifiableList(resultMap.constructorResultMappings);

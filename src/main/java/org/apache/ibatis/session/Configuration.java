@@ -149,22 +149,38 @@ public class Configuration {
    */
   protected Class<?> configurationFactory;
 
+  // 用来加载Mapper接口,进行动态代理
   protected final MapperRegistry mapperRegistry = new MapperRegistry(this);
+
+  // 拦截器(用来拦截四个对象)
   protected final InterceptorChain interceptorChain = new InterceptorChain();
+
+  // 类型处理(用于封装参数和拿到结果参数)
   protected final TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry(this);
+
+  // 类型别名
   protected final TypeAliasRegistry typeAliasRegistry = new TypeAliasRegistry();
+
+  // 语言驱动(主要用于解析sql,例如在xml里面写sql,在注解里面写sql)
   protected final LanguageDriverRegistry languageRegistry = new LanguageDriverRegistry();
 
+  // 代表一个Mapper接口里面的方法---> key为全类名+方法名, 里面包含了该方法的各种参数
   protected final Map<String, MappedStatement> mappedStatements = new StrictMap<MappedStatement>(
       "Mapped Statements collection")
           .conflictMessageProducer((savedValue, targetValue) -> ". please check " + savedValue.getResource() + " and "
               + targetValue.getResource());
+
+  // 缓存
   protected final Map<String, Cache> caches = new StrictMap<>("Caches collection");
+
   protected final Map<String, ResultMap> resultMaps = new StrictMap<>("Result Maps collection");
   protected final Map<String, ParameterMap> parameterMaps = new StrictMap<>("Parameter Maps collection");
   protected final Map<String, KeyGenerator> keyGenerators = new StrictMap<>("Key Generators collection");
 
+  // 加载的资源
   protected final Set<String> loadedResources = new HashSet<>();
+
+  // 线程安全的,sql片段
   protected final Map<String, XNode> sqlFragments = new StrictMap<>("XML fragments parsed from previous mappers");
 
   protected final Collection<XMLStatementBuilder> incompleteStatements = new LinkedList<>();
@@ -709,10 +725,16 @@ public class Configuration {
     return (ResultSetHandler) interceptorChain.pluginAll(resultSetHandler);
   }
 
-  public StatementHandler newStatementHandler(Executor executor, MappedStatement mappedStatement,
-      Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+  public StatementHandler newStatementHandler(Executor executor,
+                                              MappedStatement mappedStatement,
+                                              Object parameterObject,
+                                              RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+
+    // 每次都是new的是statementHandler
     StatementHandler statementHandler = new RoutingStatementHandler(executor, mappedStatement, parameterObject,
         rowBounds, resultHandler, boundSql);
+
+    // 封装增强方法的地方
     return (StatementHandler) interceptorChain.pluginAll(statementHandler);
   }
 

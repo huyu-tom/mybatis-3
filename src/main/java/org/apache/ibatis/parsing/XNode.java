@@ -32,19 +32,41 @@ import org.w3c.dom.NodeList;
  */
 public class XNode {
 
+  // xml节点
   private final Node node;
+
+  // 名称
   private final String name;
+
+  // body
   private final String body;
+
+  // 属性
   private final Properties attributes;
+
+  // 变量
   private final Properties variables;
+
+  // 用于解析xml,从中拿到节点
   private final XPathParser xpathParser;
 
   public XNode(XPathParser xpathParser, Node node, Properties variables) {
+    // xpath解析器
     this.xpathParser = xpathParser;
+
+    // 节点
     this.node = node;
+
+    // node的名称¬
     this.name = node.getNodeName();
+
+    // 变量
     this.variables = variables;
+
+    // 属性
     this.attributes = parseAttributes(node);
+
+    // 拿到该节点下的第一个文本节点的数据
     this.body = parseBody(node);
   }
 
@@ -110,6 +132,13 @@ public class XNode {
     return xpathParser.evalNodes(node, expression);
   }
 
+  /**
+   * 以当前节点作为根节点,用xpath表达式来获取对应的节点
+   *
+   * @param expression
+   *
+   * @return
+   */
   public XNode evalNode(String expression) {
     return xpathParser.evalNode(node, expression);
   }
@@ -252,6 +281,11 @@ public class XNode {
     return value == null ? def : Float.valueOf(value);
   }
 
+  /**
+   * 获取子节点集合
+   *
+   * @return
+   */
   public List<XNode> getChildren() {
     List<XNode> children = new ArrayList<>();
     NodeList nodeList = node.getChildNodes();
@@ -259,6 +293,7 @@ public class XNode {
       for (int i = 0, n = nodeList.getLength(); i < n; i++) {
         Node node = nodeList.item(i);
         if (node.getNodeType() == Node.ELEMENT_NODE) {
+          // 子节点必须全部都是标签节点
           children.add(new XNode(xpathParser, node, variables));
         }
       }
@@ -266,6 +301,11 @@ public class XNode {
     return children;
   }
 
+  /**
+   * 用来解析config.xml,例如: 插件
+   *
+   * @return
+   */
   public Properties getChildrenAsProperties() {
     Properties properties = new Properties();
     for (XNode child : getChildren()) {
@@ -325,12 +365,23 @@ public class XNode {
     }
   }
 
+  /**
+   * 解析属性
+   *
+   * @param n
+   *
+   * @return
+   */
   private Properties parseAttributes(Node n) {
     Properties attributes = new Properties();
+
+    // 获取属性节点
     NamedNodeMap attributeNodes = n.getAttributes();
+
     if (attributeNodes != null) {
       for (int i = 0; i < attributeNodes.getLength(); i++) {
         Node attribute = attributeNodes.item(i);
+        // 有的节点值,可能也具有 ${}解析
         String value = PropertyParser.parse(attribute.getNodeValue(), variables);
         attributes.put(attribute.getNodeName(), value);
       }
@@ -338,13 +389,22 @@ public class XNode {
     return attributes;
   }
 
+  /**
+   * 递归解析
+   *
+   * @param node
+   *
+   * @return
+   */
   private String parseBody(Node node) {
     String data = getBodyData(node);
     if (data == null) {
+      // 不是文本节点->是标签节点
       NodeList children = node.getChildNodes();
       for (int i = 0; i < children.getLength(); i++) {
         Node child = children.item(i);
         data = getBodyData(child);
+        // 拿到第一个文本节点,就可以了
         if (data != null) {
           break;
         }
@@ -354,10 +414,14 @@ public class XNode {
   }
 
   private String getBodyData(Node child) {
+    // 文本节点
     if (child.getNodeType() == Node.CDATA_SECTION_NODE || child.getNodeType() == Node.TEXT_NODE) {
       String data = ((CharacterData) child).getData();
+
+      // 主要是解析 ${}
       return PropertyParser.parse(data, variables);
     }
+    // 说明是其他节点
     return null;
   }
 

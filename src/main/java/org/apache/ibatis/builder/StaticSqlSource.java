@@ -1,5 +1,5 @@
 /*
- *    Copyright 2009-2022 the original author or authors.
+ *    Copyright 2009-2023 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.session.Configuration;
 
 /**
+ * 纯静态标签,连 #{}都没有,替换成了? ,并且记住位置索引, List<ParameterMapping> parameterMappings 属性来表示 相当于没有包含任何动态标签,#{},${}的信息
+ *
  * @author Clinton Begin
  */
 public class StaticSqlSource implements SqlSource {

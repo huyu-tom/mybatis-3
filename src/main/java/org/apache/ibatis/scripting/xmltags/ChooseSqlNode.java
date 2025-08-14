@@ -1,5 +1,5 @@
 /*
- *    Copyright 2009-2022 the original author or authors.
+ *    Copyright 2009-2023 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -31,6 +31,24 @@ public class ChooseSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
+    // 类似于以下操作,默认都是break
+    // int a = 0;
+    // switch (a) {
+    // case 1 -> {
+    // break;
+    // }
+    // case 2 -> {
+    // break;
+    // }
+    // case 3 -> {
+    // break;
+    // }
+    // default -> {
+    // break;
+    // }
+    // }
+
+    // 如果没有break的话,这里的逻辑就要发生改变
     for (SqlNode sqlNode : ifSqlNodes) {
       if (sqlNode.apply(context)) {
         return true;

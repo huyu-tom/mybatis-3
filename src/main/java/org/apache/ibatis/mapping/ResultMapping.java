@@ -31,19 +31,46 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 public class ResultMapping {
 
   private Configuration configuration;
+
+  // java的属性
   private String property;
+
+  // jdbc的字段
   private String column;
+
+  // java属性的类型
   private Class<?> javaType;
+
+  // jdbc字段的类型
   private JdbcType jdbcType;
+
+  // 类型处理器, jdbc字段的值转换为java的字段
   private TypeHandler<?> typeHandler;
+
+  // 嵌套的resultMap的id
   private String nestedResultMapId;
+
+  // 是否有嵌套的查询ID ，在 1对1和1对多的标签当中存在 select属性,
   private String nestedQueryId;
+
+  // 不为null的jdbc字段
   private Set<String> notNullColumns;
+
+  // jdbc的字段前缀
   private String columnPrefix;
+
+  // 标签,(ID,构造器)
   private List<ResultFlag> flags;
+
+  // 根据case其中的值来判断使用的resultMapping
   private List<ResultMapping> composites;
+
   private String resultSet;
+
+  // jdbc的外检字段
   private String foreignColumn;
+
+  // 是否是懒加载
   private boolean lazy;
 
   ResultMapping() {

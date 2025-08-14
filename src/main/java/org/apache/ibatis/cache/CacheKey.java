@@ -94,6 +94,7 @@ public class CacheKey implements Cloneable, Serializable {
     if (this == object) {
       return true;
     }
+
     if (!(object instanceof CacheKey)) {
       return false;
     }
@@ -121,6 +122,7 @@ public class CacheKey implements Cloneable, Serializable {
 
   @Override
   public String toString() {
+    // hashCode:checkSum:各种值(:隔开)
     StringJoiner returnValue = new StringJoiner(":");
     returnValue.add(String.valueOf(hashcode));
     returnValue.add(String.valueOf(checksum));

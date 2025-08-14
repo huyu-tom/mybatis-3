@@ -73,6 +73,15 @@ public class PreparedStatementHandler extends BaseStatementHandler {
     return resultSetHandler.handleCursorResultSets(ps);
   }
 
+  /**
+   * 初始化statement
+   *
+   * @param connection
+   *
+   * @return
+   *
+   * @throws SQLException
+   */
   @Override
   protected Statement instantiateStatement(Connection connection) throws SQLException {
     String sql = boundSql.getSql();
@@ -81,6 +90,7 @@ public class PreparedStatementHandler extends BaseStatementHandler {
       if (keyColumnNames == null) {
         return connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
       } else {
+        // 插入,返回的一行或者多行
         return connection.prepareStatement(sql, keyColumnNames);
       }
     }
@@ -92,6 +102,13 @@ public class PreparedStatementHandler extends BaseStatementHandler {
     }
   }
 
+  /**
+   * 设置参数
+   *
+   * @param statement
+   *
+   * @throws SQLException
+   */
   @Override
   public void parameterize(Statement statement) throws SQLException {
     parameterHandler.setParameters((PreparedStatement) statement);
