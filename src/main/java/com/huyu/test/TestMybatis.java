@@ -34,7 +34,10 @@ public class TestMybatis {
    */
   public static void main(String[] args) throws IOException {
     String resource = "com/huyu/test/mybatis-config.xml";
+
     InputStream inputStream = Resources.getResourceAsStream(resource);
+
+    //配置文件来构建我们的sqlsessionfactory
     SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
 
     SqlSession sqlSession = sqlSessionFactory.openSession();

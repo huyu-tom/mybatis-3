@@ -32,8 +32,8 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
 /**
- * 在这里doUpdate,doQuery,doQueryCursor方法里面都会new出一个StatementHandler, new出一个StatementHandler的时候(增强拦截),底层内部也会new出其他拦截的对象,
- * ParameterHandler和ResultSetHandler(增强拦截)
+ * 在这里doUpdate,doQuery,doQueryCursor方法里面都会new出一个StatementHandler,
+ * new出一个StatementHandler的时候(增强拦截),底层内部也会new出其他拦截的对象, ParameterHandler和ResultSetHandler(增强拦截)
  *
  * @author Clinton Begin
  */
@@ -43,12 +43,22 @@ public class SimpleExecutor extends BaseExecutor {
     super(configuration, transaction);
   }
 
+
+  /**
+   * doUpdate
+   *
+   * @param ms
+   * @param parameter
+   * @return
+   * @throws SQLException
+   */
   @Override
   public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
     Statement stmt = null;
     try {
       Configuration configuration = ms.getConfiguration();
-      StatementHandler handler = configuration.newStatementHandler(this, ms, parameter, RowBounds.DEFAULT, null, null);
+      StatementHandler handler = configuration.newStatementHandler(this, ms, parameter,
+        RowBounds.DEFAULT, null, null);
       stmt = prepareStatement(handler, ms.getStatementLog());
       return handler.update(stmt);
     } finally {
@@ -57,14 +67,14 @@ public class SimpleExecutor extends BaseExecutor {
   }
 
   @Override
-  public <E> List<E> doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler,
-      BoundSql boundSql) throws SQLException {
+  public <E> List<E> doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds,
+    ResultHandler resultHandler, BoundSql boundSql) throws SQLException {
     Statement stmt = null;
     try {
       Configuration configuration = ms.getConfiguration();
       // 得到一个sql语法构建器,并且同时也会new出 ParameterHandler和ResultSetHandler,并且同时加强(拦截)
-      StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler,
-          boundSql);
+      StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter,
+        rowBounds, resultHandler, boundSql);
       // 创建statement 和 封装参数 (执行statement方法 prepare, parameterize)
       stmt = prepareStatement(handler, ms.getStatementLog());
       // 然后再次调用里面的查询方法(功能性方法,查询(游标和列表),更新(批量))
@@ -76,10 +86,11 @@ public class SimpleExecutor extends BaseExecutor {
   }
 
   @Override
-  protected <E> Cursor<E> doQueryCursor(MappedStatement ms, Object parameter, RowBounds rowBounds, BoundSql boundSql)
-      throws SQLException {
+  protected <E> Cursor<E> doQueryCursor(MappedStatement ms, Object parameter, RowBounds rowBounds,
+    BoundSql boundSql) throws SQLException {
     Configuration configuration = ms.getConfiguration();
-    StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, null, boundSql);
+    StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds,
+      null, boundSql);
     Statement stmt = prepareStatement(handler, ms.getStatementLog());
     Cursor<E> cursor = handler.queryCursor(stmt);
     stmt.closeOnCompletion();
@@ -91,7 +102,8 @@ public class SimpleExecutor extends BaseExecutor {
     return Collections.emptyList();
   }
 
-  private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
+  private Statement prepareStatement(StatementHandler handler, Log statementLog)
+    throws SQLException {
     Statement stmt;
     Connection connection = getConnection(statementLog);
     stmt = handler.prepare(connection, transaction.getTimeout());

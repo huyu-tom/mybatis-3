@@ -37,21 +37,29 @@ import org.apache.ibatis.util.MapUtil;
 public class MapperProxy<T> implements InvocationHandler, Serializable {
 
   private static final long serialVersionUID = -4724728412955527868L;
+
+  //
   private static final int ALLOWED_MODES =
     MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED | MethodHandles.Lookup.PACKAGE
       | MethodHandles.Lookup.PUBLIC;
+
+
   private static final Constructor<Lookup> lookupConstructor;
   private static final Method privateLookupInMethod;
-  //
+  //sqlSession
   private final SqlSession sqlSession;
-  //
+  //代理的接口
   private final Class<T> mapperInterface;
+  // null
   private final Map<Method, MapperMethodInvoker> methodCache;
 
   public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface,
     Map<Method, MapperMethodInvoker> methodCache) {
+    //和Spring进行组合的时候, 他是SqlSessionTemplate
     this.sqlSession = sqlSession;
+    //代理接口
     this.mapperInterface = mapperInterface;
+    //在这个版本好像没有能设置的地方
     this.methodCache = methodCache;
   }
 
@@ -86,6 +94,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
       if (Object.class.equals(method.getDeclaringClass())) {
+        //是object的方法话,就直接调用
         return method.invoke(this, args);
       }
       return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
@@ -98,9 +107,11 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     try {
       return MapUtil.computeIfAbsent(methodCache, method, m -> {
         if (!m.isDefault()) {
+          //不是默认方法,说明就是普通方法,因为接口也可以定义默认方法了
           return new PlainMethodInvoker(
             new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
         }
+        //默认方法,直接调用
         try {
           if (privateLookupInMethod == null) {
             return new DefaultMethodInvoker(getMethodHandleJava8(method));

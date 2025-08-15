@@ -138,7 +138,8 @@ public class MapperAnnotationBuilder {
         }
 
         // 查询该方法上是否有select注解和ResultMap注解,用于解析ResultMap
-        if (getAnnotationWrapper(method, false, Select.class, SelectProvider.class).isPresent()
+        if (getAnnotationWrapper(method, false,
+          Select.class, SelectProvider.class).isPresent()
             && method.getAnnotation(ResultMap.class) == null) {
           parseResultMap(method);
         }
@@ -151,6 +152,8 @@ public class MapperAnnotationBuilder {
         }
       }
     }
+
+
     parsePendingMethods();
   }
 

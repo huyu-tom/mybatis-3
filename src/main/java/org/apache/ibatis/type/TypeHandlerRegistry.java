@@ -54,7 +54,10 @@ import org.apache.ibatis.session.Configuration;
  */
 public final class TypeHandlerRegistry {
 
-  // JDBC的类型 => 类型处理器 用于获取结果集封装
+  /**
+   * 映射 JDBC 类型到对应的类型处理器。
+   * 当从数据库读取数据时，根据 JDBC 类型找到相应的 TypeHandler 来转换数据。
+   */
   private final Map<JdbcType, TypeHandler<?>> jdbcTypeHandlerMap = new EnumMap<>(JdbcType.class);
 
   // Java的类型 => 可以封装多个不同的jdbc的类型 用于set参数
